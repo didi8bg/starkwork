@@ -10,7 +10,7 @@ namespace IRandomNumberGenerator:
 end
 
 @storage_var
-func user_commit(user: felt) -> (commit: felt):
+func user_commit(user: felt) -> (commit: felt, commit_block: felt):
 end
 
 @storage_var
@@ -20,21 +20,27 @@ end
 @external
 func commit(hash: felt):
     let caller_address = get_caller_address()
-    user_commit.write(caller_address, hash)
+    let current_block = get_block_number()
+
+    // Store the commit hash along with the block number of the commit
+    user_commit.write(caller_address, hash, current_block)
     return ()
 
 @external
 func reveal(secret: felt) -> (random_number: felt):
     let caller_address = get_caller_address()
-    let commit_hash = user_commit.read(caller_address)
+    let (commit_hash, commit_block) = user_commit.read(caller_address)
 
     assert hash_secret(secret) = commit_hash, "Invalid secret"
 
-    let current_nonce = nonce.read()
-    let block_number = get_block_number()
-    let block_timestamp = get_block_timestamp()
+    // Check if enough blocks have passed since the commit
+    let current_block = get_block_number()
+    assert current_block - commit_block > MIN_BLOCK_DELAY, "Too early to reveal"
 
-    let combined = block_number + block_timestamp + secret + current_nonce
+    let current_nonce = nonce.read()
+
+    // Use additional entropy sources for randomness
+    let combined = current_block + secret + current_nonce + caller_address
     let random_number = bitwise_and(combined, (2**250) - 1)
 
     nonce.write(current_nonce + 1)
@@ -46,3 +52,6 @@ end
 func hash_secret(secret: felt) -> (hash: felt):
     // Implement hashing logic using Pedersen hash
     return (hash,)
+end
+
+const MIN_BLOCK_DELAY = 10  # Define a minimum number of blocks delay for the reveal
