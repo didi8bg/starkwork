@@ -1,2 +1,2 @@
 # starkwork
-trying to work on starknet
+Testing a simple random generator for Starknet. Wrok in progress.
