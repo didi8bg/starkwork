@@ -12,3 +12,4 @@ Adding improved security
 - Commit Block tracking
 - Minimum Block Delay for Revela (introducing "MIN_BLOCK_DELAY"
 ----- continue tomorrow
+Need to start over and fix some errors, add more randomnes!
