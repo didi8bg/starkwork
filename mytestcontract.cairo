@@ -2,10 +2,13 @@
 
 @contract_interface
 namespace IRandomNumberGenerator:
-    func commit(hash: felt):
+    func commit(user: felt, hash: felt):
     end
 
-    func reveal(secret: felt) -> (random_number: felt):
+    func reveal(user: felt, secret: felt):
+    end
+
+    func generate_aggregated_random_number() -> (random_number: felt):
     end
 end
 
@@ -14,43 +17,52 @@ func user_commit(user: felt) -> (commit: felt, commit_block: felt):
 end
 
 @storage_var
+func aggregated_secret() -> (value: felt):
+end
+
+@storage_var
 func nonce() -> (value: felt):
 end
 
 @external
-func commit(hash: felt):
-    let caller_address = get_caller_address()
+func commit(user: felt, hash: felt):
     let current_block = get_block_number()
-
-    // Store the commit hash along with the block number of the commit
-    user_commit.write(caller_address, hash, current_block)
+    user_commit.write(user, hash, current_block)
     return ()
 
 @external
-func reveal(secret: felt) -> (random_number: felt):
-    let caller_address = get_caller_address()
-    let (commit_hash, commit_block) = user_commit.read(caller_address)
+func reveal(user: felt, secret: felt):
+    let (commit_hash, commit_block) = user_commit.read(user)
 
     assert hash_secret(secret) = commit_hash, "Invalid secret"
 
-    // Check if enough blocks have passed since the commit
     let current_block = get_block_number()
     assert current_block - commit_block > MIN_BLOCK_DELAY, "Too early to reveal"
 
-    let current_nonce = nonce.read()
+    let current_aggregated_secret = aggregated_secret.read()
+    let new_aggregated_secret = current_aggregated_secret + secret
+    aggregated_secret.write(new_aggregated_secret)
+    return ()
 
-    // Use additional entropy sources for randomness
-    let combined = current_block + secret + current_nonce + caller_address
+@external
+func generate_aggregated_random_number() -> (random_number: felt):
+    let current_nonce = nonce.read()
+    let current_aggregated_secret = aggregated_secret.read()
+
+    let block_number = get_block_number()
+    let block_timestamp = get_block_timestamp()
+    
+    let combined = block_number + block_timestamp + current_aggregated_secret + current_nonce
     let random_number = bitwise_and(combined, (2**250) - 1)
 
     nonce.write(current_nonce + 1)
+    aggregated_secret.write(0)  # Reset the aggregated secret after generating the number
 
-    // Emit an event or handle the random number as needed
     return (random_number,)
 end
 
 func hash_secret(secret: felt) -> (hash: felt):
-    // Implement hashing logic using Pedersen hash
+    # Implement hashing logic using Pedersen hash
     return (hash,)
 end
 
