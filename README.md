@@ -13,3 +13,4 @@ Adding improved security
 - Minimum Block Delay for Revela (introducing "MIN_BLOCK_DELAY"
 ----- continue tomorrow
 Adding multiple commits and revelas and aggregfated Secret.
+-------- Did not have time today, work continues tomorrow.
